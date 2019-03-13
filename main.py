@@ -11,7 +11,7 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
-import model.vgg
+import model.vgg as vgg
 
 model_names = ['vgg11','vgg11_bn','vgg13','vgg13_bn','vgg16','vgg16_bn','vgg19','vgg19_bn']
 
@@ -104,23 +104,23 @@ def main():
     
     normalize = transforms.Normalize(mean=[0.485,0.456,0,406],std=[0.229,0.224,0.225])
     
-    train_loader = torch.utils.data.DataLoader(datasets.CIFAR10(root='./data',
+    train_loader = torch.utils.data.DataLoader(datasets.CIFAR10(root='/mnt/lustre/wanghezhang/work/pytorch/base_model/data',
                                                                 train=True,
                                                                 transform=transforms.Compose([
                                                                    transforms.RandomHorizontalFlip(),
                                                                    transforms.RandomCrop(32,4),
                                                                    transforms.ToTensor(),normalize]),
-                                                                download=True),
+                                                                download=False),
                                                batch_size=args.batch_size,
                                                shuffle=True,
                                                num_workers=args.num_workers,
                                                pin_memory=True)
-    val_loader = torch.utils.data.DataLoader(datasets.CIFAR10(root='./data', 
+    val_loader = torch.utils.data.DataLoader(datasets.CIFAR10(root='/mnt/lustre/wanghezhang/work/pytorch/base_model/data', 
                                                               train=False, 
                                                               transform=transforms.Compose([
-                                                              transforms.ToTensor(),
+                                                                  transforms.ToTensor(),
                                                                   normalize]),
-                                                              download=True),
+                                                              download=False),
                                              batch_size=args.batch_size,
                                              shuffle=False,
                                              num_workers=args.num_workers,
@@ -232,3 +232,6 @@ def validate(val_loader, model, criterion):
         print('* prec@1 {top1.avg:.3f}'.format(top1=top1))
         
         return top1.avg
+
+if __name__ == '__main__':
+	main()

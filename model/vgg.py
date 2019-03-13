@@ -27,7 +27,7 @@ def make_layer(cfg, batch_norm=False):
                 layers += [conv2d, nn.ReLU(inplace=True)]
             in_channels = v
     
-    return nn.Sequential(layers)
+    return nn.Sequential(*layers)
 
 class VGG(nn.Module):
     def __init__(self, features, num_classes=10):
@@ -52,19 +52,19 @@ class VGG(nn.Module):
         
         return x
     
-    def init_weight(self):
-        for m in self.modules:
+    def init_weights(self):
+        for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.normal_(0, math.sqrt(2./n))
+                m.weight.data.normal_(0, math.sqrt(2./n))
                 if m.bias is not None:
-                    m.bias.zero_()
+                    m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
-                m.weight.fill_(1)
-                m.bias.zero_()
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
-                m.weight.normal_(0,0.01)
-                m.bias.zero_()
+                m.weight.data.normal_(0,0.01)
+                m.bias.data.zero_()
     
 def vgg11(**kwargs):
     return VGG(make_layer(cfgs['A']),**kwargs)
