@@ -21,8 +21,8 @@ parser.add_argument('--arch','-a',metavar='ARCH', default='vgg19',
 parser.add_argument('-j', '--num_workers', default=4, type=int,metavar='N',help="number of data load workers.")
 parser.add_argument('--epoches', default=100, type=int, metavar='N',help='number of total epoch to run.')
 parser.add_argument('--start_epoch', default=0, type=int, metavar='N',help='manual epoch num.')
-parser.add_argument('-b','--batch_size', default=256, type=int, metavar='N',help='batch size')
-parser.add_argument('-lr','--learning_rate',default=0.1,type=float,metavar='LR',help='init learning rate.')
+parser.add_argument('-b','--batch_size', default=128, type=int, metavar='N',help='batch size')
+parser.add_argument('-lr','--learning_rate',default=0.05,type=float,metavar='LR',help='init learning rate.')
 parser.add_argument('--momentum',default=0.9,type=float,metavar='M',help='momentum')
 parser.add_argument('--weight_decay',default=5e-4,type=float,metavar='W',help='weight decay')
 parser.add_argument('--resume',default='',type=str, metavar='PATH',help='resume path')
@@ -55,7 +55,7 @@ def save_point(state, filename="checkpoint.pth.tar"):
     
 
 def adjust_learning_rate(epoch, optimizer):
-    lr = args.learning_rate * (0.1 ** (epoch // 30))
+    lr = args.learning_rate * (0.5 ** (epoch // 30))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
         
@@ -104,27 +104,23 @@ def main():
     
     normalize = transforms.Normalize(mean=[0.485,0.456,0,406],std=[0.229,0.224,0.225])
     
-    train_dir = '/mnt/lustre/share/images/train'
-    val_dir   = '/mnt/lustre/share/images/test'
-
-    train_loader = torch.utils.data.DataLoader(datasets.ImageFloder(root=train_dir,
-                                                                    transform=transforms.Compose([
-                                                                        transforms.RandomSizedCrop(224),
-                                                                        transforms.RandomHorizontalFlip(),
-                                                                        transforms.ToTensor(),
-                                                                        normalize])
-                                                                    ),
+    train_loader = torch.utils.data.DataLoader(datasets.CIFAR10(root='./data',
+                                                                train=True,
+                                                                transform=transforms.Compose([
+                                                                   transforms.RandomHorizontalFlip(),
+                                                                   transforms.RandomCrop(32,4),
+                                                                   transforms.ToTensor(),normalize]),
+                                                                download=True),
                                                batch_size=args.batch_size,
                                                shuffle=True,
                                                num_workers=args.num_workers,
                                                pin_memory=True)
-    val_loader = torch.utils.data.DataLoader(datasets.ImageFloder(root=val_dir,
-                                                                  transform=transforms.Compose([
-                                                                      transforms.Sacle(256),
-                                                                      transforms.CenterCrop(224),
-                                                                      transforms.ToTensor(),
-                                                                      normalize])
-                                                                  ),
+    val_loader = torch.utils.data.DataLoader(datasets.CIFAR10(root='./data', 
+                                                              train=False, 
+                                                              transform=transforms.Compose([
+                                                                  transforms.ToTensor(),
+                                                                  normalize]),
+                                                              download=True),
                                              batch_size=args.batch_size,
                                              shuffle=False,
                                              num_workers=args.num_workers,

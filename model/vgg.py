@@ -30,18 +30,18 @@ def make_layer(cfg, batch_norm=False):
     return nn.Sequential(*layers)
 
 class VGG(nn.Module):
-    def __init__(self, features, num_classes=10):
+    def __init__(self, features, num_classes=1000):
         super(VGG, self).__init__()
         
         self.features = features
         self.classifier = nn.Sequential(
-            nn.Linear(512,512),
+            nn.Linear(512 * 7 * 7, 4096),
             nn.ReLU(inplace=True),
             nn.Dropout(),
-            nn.Linear(512,512),
+            nn.Linear(4096, 4096),
             nn.ReLU(inplace=True),
             nn.Dropout(),
-            nn.Linear(512,num_classes)
+            nn.Linear(4096, num_classes)
         )
         self.init_weights()
     
