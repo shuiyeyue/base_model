@@ -110,7 +110,7 @@ def main():
                                                                    transforms.RandomHorizontalFlip(),
                                                                    transforms.RandomCrop(32,4),
                                                                    transforms.ToTensor(),normalize]),
-                                                                download=False),
+                                                                download=True),
                                                batch_size=args.batch_size,
                                                shuffle=True,
                                                num_workers=args.num_workers,
@@ -120,7 +120,7 @@ def main():
                                                               transform=transforms.Compose([
                                                                   transforms.ToTensor(),
                                                                   normalize]),
-                                                              download=False),
+                                                              download=True),
                                              batch_size=args.batch_size,
                                              shuffle=False,
                                              num_workers=args.num_workers,
@@ -142,7 +142,7 @@ def main():
     for epoch in range(args.start_epoch, args.epoches):
         adjust_learning_rate(epoch,optimizer) 
         train(train_loader, model, criterion, optimizer, epoch)
-        if epoch % 20 == 0:
+        if (epoch + 1) % 20 == 0:
             prec1 = validate(val_loader, model, criterion)    
             best_prec1 = max(prec1,best_prec1)
             save_point({'epoch': epoch + 1,
