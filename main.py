@@ -23,7 +23,7 @@ parser.add_argument('--arch','-a',metavar='ARCH', default='vgg19',
 parser.add_argument('-j', '--num_workers', default=4, type=int,metavar='N',help="number of data load workers.")
 parser.add_argument('--epoches', default=100, type=int, metavar='N',help='number of total epoch to run.')
 parser.add_argument('--start_epoch', default=0, type=int, metavar='N',help='manual epoch num.')
-parser.add_argument('-b','--batch_size', default=256, type=int, metavar='N',help='batch size')
+parser.add_argument('-b','--batch_size', default=32, type=int, metavar='N',help='batch size')
 parser.add_argument('-lr','--learning_rate',default=0.1,type=float,metavar='LR',help='init learning rate.')
 parser.add_argument('--momentum',default=0.9,type=float,metavar='M',help='momentum')
 parser.add_argument('--weight_decay',default=5e-4,type=float,metavar='W',help='weight decay')
@@ -110,7 +110,7 @@ def main():
     root_dir = '/mnt/lustre/share/images'
 
     train_loader = torch.utils.data.DataLoader(Imagenet.ImageNet(root=root_dir,
-                                                                 is_train=False,
+                                                                 is_train=True,
                                                                  transform=transforms.Compose([
                                                                     transforms.RandomResizedCrop(224),
                                                                     transforms.RandomHorizontalFlip(),

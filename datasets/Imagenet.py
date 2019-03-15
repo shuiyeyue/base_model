@@ -32,7 +32,7 @@ class ImageNet(torch.utils.data.Dataset):
       img_dir = os.path.join(self.root, "val")
 
     image = Image.open(os.path.join(img_dir, self.imgs[index][0])).convert('RGB')
-    if self.transform:
+    if self.transform is not None:
       image = self.transform(image)
 
     return image, self.imgs[index][1]
