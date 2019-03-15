@@ -1,1 +1,2 @@
-# base_model
+learn base model 
+train on imagenet
