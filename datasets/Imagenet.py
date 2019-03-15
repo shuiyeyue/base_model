@@ -32,8 +32,10 @@ class ImageNet(torch.utils.data.Dataset):
       img_dir = os.path.join(self.root, "val")
 
     image = Image.open(os.path.join(img_dir, self.imgs[index][0])).convert('RGB')
+    if self.transform:
+      image = self.transform(image)
 
     return image, self.imgs[index][1]
 
   def __len__(self):
-    return self.length;
+    return self.length
