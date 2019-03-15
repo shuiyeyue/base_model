@@ -11,6 +11,8 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
+
+import datasets.Imagenet as Imagenet
 import model.vgg as vgg
 
 model_names = ['vgg11','vgg11_bn','vgg13','vgg13_bn','vgg16','vgg16_bn','vgg19','vgg19_bn']
@@ -104,27 +106,29 @@ def main():
     
     normalize = transforms.Normalize(mean=[0.485,0.456,0,406],std=[0.229,0.224,0.225])
     
-    train_dir = '/mnt/lustre/share/images/train'
-    val_dir   = '/mnt/lustre/share/images/test'
+    #train && val_dir
+    root_dir = '/mnt/lustre/share/images'
 
-    train_loader = torch.utils.data.DataLoader(datasets.ImageFloder(root=train_dir,
-                                                                    transform=transforms.Compose([
-                                                                        transforms.RandomSizedCrop(224),
-                                                                        transforms.RandomHorizontalFlip(),
-                                                                        transforms.ToTensor(),
-                                                                        normalize])
-                                                                    ),
+    train_loader = torch.utils.data.DataLoader(Imagenet.ImageNet(root=root_dir,
+                                                                 is_train=False,
+                                                                 transform=transforms.Compose([
+                                                                    transforms.RandomResizedCrop(224),
+                                                                    transforms.RandomHorizontalFlip(),
+                                                                    transforms.ToTensor(),
+                                                                    normalize])
+                                                                ),
                                                batch_size=args.batch_size,
                                                shuffle=True,
                                                num_workers=args.num_workers,
                                                pin_memory=True)
-    val_loader = torch.utils.data.DataLoader(datasets.ImageFloder(root=val_dir,
-                                                                  transform=transforms.Compose([
-                                                                      transforms.Sacle(256),
+    val_loader = torch.utils.data.DataLoader(Imagenet.ImageNet( root=root_dir,
+                                                                is_train=False,
+                                                                transform=transforms.Compose([
+                                                                      transforms.Resize(256),
                                                                       transforms.CenterCrop(224),
                                                                       transforms.ToTensor(),
                                                                       normalize])
-                                                                  ),
+                                                                ),
                                              batch_size=args.batch_size,
                                              shuffle=False,
                                              num_workers=args.num_workers,
