@@ -17,14 +17,14 @@ import model.vgg as vgg
 
 model_names = ['vgg11','vgg11_bn','vgg13','vgg13_bn','vgg16','vgg16_bn','vgg19','vgg19_bn']
 
-parser = argparse.ArgumentParser(description='cifar10 training for pytorch')
+parser = argparse.ArgumentParser(description='Imagenet training for pytorch')
 parser.add_argument('--arch','-a',metavar='ARCH', default='vgg19', 
                     choices=model_names, help='model archiitecture: ' + '|'.join(model_names))
 parser.add_argument('-j', '--num_workers', default=4, type=int,metavar='N',help="number of data load workers.")
 parser.add_argument('--epoches', default=100, type=int, metavar='N',help='number of total epoch to run.')
 parser.add_argument('--start_epoch', default=0, type=int, metavar='N',help='manual epoch num.')
-parser.add_argument('-b','--batch_size', default=32, type=int, metavar='N',help='batch size')
-parser.add_argument('-lr','--learning_rate',default=0.1,type=float,metavar='LR',help='init learning rate.')
+parser.add_argument('-b','--batch_size', default=64, type=int, metavar='N',help='batch size')
+parser.add_argument('-lr','--learning_rate',default=0.005,type=float,metavar='LR',help='init learning rate.')
 parser.add_argument('--momentum',default=0.9,type=float,metavar='M',help='momentum')
 parser.add_argument('--weight_decay',default=5e-4,type=float,metavar='W',help='weight decay')
 parser.add_argument('--resume',default='',type=str, metavar='PATH',help='resume path')
