@@ -11,11 +11,19 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
+from tensorboardX import SummaryWriter
 
-import datasets.Imagenet as Imagenet
+import sys
+sys.path.append("../..")
+
+import datasets.memcached_dataset as memcached_dataset
 import model.vgg as vgg
+import model.resnet as reset
 
-model_names = ['vgg11','vgg11_bn','vgg13','vgg13_bn','vgg16','vgg16_bn','vgg19','vgg19_bn']
+
+
+model_names = ['vgg11','vgg11_bn','vgg13','vgg13_bn','vgg16','vgg16_bn','vgg19','vgg19_bn',
+               'resnet18','resnet34','resnet50','resnet101','resnet152']
 
 parser = argparse.ArgumentParser(description='Imagenet training for pytorch')
 parser.add_argument('--arch','-a',metavar='ARCH', default='vgg19', 
@@ -84,10 +92,17 @@ def main():
     
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
+
+    tb_logger = SummaryWriter(os.path.join(args.save_dir, "./events"))
+    model = None
+    if 'vgg' in args.arch:
+        model = vgg.__dict__[args.arch]()
+    else:
+        model = reset.__dict__[args.arch]()
     
-    model = vgg.__dict__[args.arch]()
+    print(model)
     
-    model.features = torch.nn.DataParallel(model.features)
+    model = torch.nn.DataParallel(model)
     model.cuda()
     
     if args.resume:
@@ -107,28 +122,34 @@ def main():
     normalize = transforms.Normalize(mean=[0.485,0.456,0,406],std=[0.229,0.224,0.225])
     
     #train && val_dir
-    root_dir = '/mnt/lustre/share/images'
+    train_root = '/mnt/lustre/share/images/train'
+    train_source = '/mnt/lustre/share/images/meta/train.txt'
 
-    train_loader = torch.utils.data.DataLoader(Imagenet.ImageNet(root=root_dir,
-                                                                 is_train=True,
-                                                                 transform=transforms.Compose([
-                                                                    transforms.RandomResizedCrop(224),
-                                                                    transforms.RandomHorizontalFlip(),
-                                                                    transforms.ToTensor(),
-                                                                    normalize])
-                                                                ),
+    val_root = '/mnt/lustre/share/images/val'
+    val_source = '/mnt/lustre/share/images/meta/val.txt'
+
+    train_loader = torch.utils.data.DataLoader(memcached_dataset.McDataset(
+                                                         train_root,
+                                                         train_source,
+                                                         transform=transforms.Compose([
+                                                            transforms.RandomResizedCrop(224),
+                                                            transforms.RandomHorizontalFlip(),
+                                                            transforms.ToTensor(),
+                                                            normalize])
+                                                        ),
                                                batch_size=args.batch_size,
                                                shuffle=True,
                                                num_workers=args.num_workers,
                                                pin_memory=True)
-    val_loader = torch.utils.data.DataLoader(Imagenet.ImageNet( root=root_dir,
-                                                                is_train=False,
-                                                                transform=transforms.Compose([
-                                                                      transforms.Resize(256),
-                                                                      transforms.CenterCrop(224),
-                                                                      transforms.ToTensor(),
-                                                                      normalize])
-                                                                ),
+    val_loader = torch.utils.data.DataLoader(memcached_dataset.McDataset( 
+                                                        val_root,
+                                                        val_source,
+                                                        transform=transforms.Compose([
+                                                            transforms.Resize(256),
+                                                            transforms.CenterCrop(224),
+                                                            transforms.ToTensor(),
+                                                            normalize])
+                                                        ),
                                              batch_size=args.batch_size,
                                              shuffle=False,
                                              num_workers=args.num_workers,
@@ -142,24 +163,25 @@ def main():
         criterion.half()
             
     optimizer = torch.optim.SGD(model.parameters(), args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones = [20,40,50], gamma=0.1)
         
     if args.evaluate:
         validate(val_loader, model, criterion)
         return
         
     for epoch in range(args.start_epoch, args.epoches):
-        adjust_learning_rate(epoch,optimizer) 
-        train(train_loader, model, criterion, optimizer, epoch)
-        if (epoch + 1) % 20 == 0:
-            prec1 = validate(val_loader, model, criterion)    
-            best_prec1 = max(prec1,best_prec1)
-            save_point({'epoch': epoch + 1,
-                        'state_dict': model.state_dict(),
-                        'best_prec1': best_prec1},
-                        filename=os.path.join(args.save_dir, 'checkpoints_{}.tar'.format(epoch)))      
-
+        #adjust_learning_rate(epoch,optimizer)
+        lr_scheduler.step()
+        train(train_loader, model, criterion, optimizer, epoch, tb_logger,lr_scheduler)
+        prec1 = validate(val_loader, model, criterion)    
+        best_prec1 = max(prec1,best_prec1)
+        save_point({'epoch': epoch + 1,
+                    'state_dict': model.state_dict(),
+                    'best_prec1': best_prec1},
+                    filename=os.path.join(args.save_dir, 'checkpoints_{}.tar'.format(epoch))) 
+        tb_logger.add_scalar('prec_test', prec1, epoch)
         
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch ,tb_logger,lr_scheduler):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -195,12 +217,18 @@ def train(train_loader, model, criterion, optimizer, epoch):
         
         if i % args.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
+                  'LR {3}\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'\
+                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                      epoch, i, len(train_loader), batch_time=batch_time,
+                      epoch, i, len(train_loader), lr_scheduler.get_lr()[0], batch_time=batch_time,
                       data_time=data_time, loss=losses, top1=top1))
+
+        tb_logger.add_scalar('loss_train',losses.val, epoch * len(train_loader) + i)
+        tb_logger.add_scalar('prec_train',top1.val,   epoch * len(train_loader) + i)
+        
+        
 
 def validate(val_loader, model, criterion):
     batch_time = AverageMeter()
@@ -238,6 +266,7 @@ def validate(val_loader, model, criterion):
                           loss=losses, top1=top1))
             
         print('* prec@1 {top1.avg:.3f}'.format(top1=top1))
+
         
     return top1.avg
 
